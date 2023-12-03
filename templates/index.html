@@ -1,28 +1,38 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Visualisation d'images</title>
+    <title>Visualisation et Collage d'images</title>
 </head>
 <body>
-    <h1>Visualisation d'images</h1>
+    <h1>Chargement et Sélection des Images</h1>
     <form method="POST" enctype="multipart/form-data">
         <input type="file" name="file" multiple>
         <input type="submit" value="Charger les images">
     </form>
 
-    {% if images %}
-    <h2>Images chargées</h2>
-    <div class="image-container">
-        {% for image in images %}
-        <img class="vignette" src="static/uploads/{{image}}" alt="Image">
+    <form method="POST" action="/create-collage">
+        <div class="image-container">
+            {% for image in images %}
+            <div>
+                <img src="{{ url_for('static', filename='uploads/' ~ image) }}" alt="Image" class="vignette">
+                <input type="checkbox" name="selected_images" value="{{image}}">
+            </div>
+            {% endfor %}
+        </div>
+        <input type="submit" value="Créer Collage">
+    </form>
+
+    <h2>Collages Créés</h2>
+    <div class="collage-container">
+        {% for collage in collages %}
+        <img src="{{ url_for('static', filename='uploads/pairs/' ~ collage) }}" alt="Collage">
         {% endfor %}
     </div>
-    {% endif %}
 </body>
 <style>
-    .vignette{
-        width: 10%;
-        height: 10%;
+    .vignette {
+        width: 100px;
+        height: auto;
     }
 </style>
 </html>

@@ -14,9 +14,15 @@
     <h2>Images chargées</h2>
     <div class="image-container">
         {% for image in images %}
-        <img src="{{ url_for('static', filename=image) }}" alt="Image">
+        <img class="vignette" src="static/uploads/{{image}}" alt="Image">
         {% endfor %}
     </div>
     {% endif %}
 </body>
+<style>
+    .vignette{
+        width: 10%;
+        height: 10%;
+    }
+</style>
 </html>

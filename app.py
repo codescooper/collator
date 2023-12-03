@@ -2,7 +2,7 @@ from flask import Flask, request, render_template
 import os
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'static'
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
 @app.route('/', methods=['GET', 'POST'])
 

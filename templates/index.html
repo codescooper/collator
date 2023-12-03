@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Visualisation d'images</title>
+</head>
+<body>
+    <h1>Visualisation d'images</h1>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" multiple>
+        <input type="submit" value="Charger les images">
+    </form>
+
+    {% if images %}
+    <h2>Images chargées</h2>
+    <div class="image-container">
+        {% for image in images %}
+        <img src="{{ url_for('static', filename=image) }}" alt="Image">
+        {% endfor %}
+    </div>
+    {% endif %}
+</body>
+</html>

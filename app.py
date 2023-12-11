@@ -25,16 +25,19 @@ def create_collage():
     selected_images = request.form.getlist('selected_images')
     if len(selected_images) == 2:
         collage_filename = generate_collage(selected_images)
+        # Supprimez ou déplacez les images originales
         for image in selected_images:
             os.remove(os.path.join(app.config['UPLOAD_FOLDER'], image))
     return redirect(url_for('upload_and_collage_images'))
 
 def generate_collage(image_paths):
+    # Fonction pour remplacer la transparence par un fond blanc
     def add_white_background(image):
         background = Image.new('RGB', image.size, 'white')
         background.paste(image, mask=image.split()[3])
         return background
 
+    # Charger les images et ajouter un fond blanc si nécessaire
     img1 = Image.open(os.path.join(app.config['UPLOAD_FOLDER'], image_paths[0]))
     img2 = Image.open(os.path.join(app.config['UPLOAD_FOLDER'], image_paths[1]))
     if img1.mode == 'RGBA':

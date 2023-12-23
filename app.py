@@ -1,5 +1,5 @@
 from flask import Flask, request, render_template, redirect, url_for
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import os
 
 app = Flask(__name__)
@@ -23,14 +23,15 @@ def upload_and_collage_images():
 @app.route('/create-collage', methods=['POST'])
 def create_collage():
     selected_images = request.form.getlist('selected_images')
+    selected_size = request.form['size']
     if len(selected_images) == 2:
-        collage_filename = generate_collage(selected_images)
+        collage_filename = generate_collage(selected_images, selected_size)
         # Supprimez ou déplacez les images originales
         for image in selected_images:
             os.remove(os.path.join(app.config['UPLOAD_FOLDER'], image))
     return redirect(url_for('upload_and_collage_images'))
 
-def generate_collage(image_paths):
+def generate_collage(image_paths, size):
     # Fonction pour remplacer la transparence par un fond blanc
     def add_white_background(image):
         background = Image.new('RGB', image.size, 'white')
@@ -67,6 +68,8 @@ def generate_collage(image_paths):
     new_img.paste(img2, (img2_x, images_y))
     new_img.paste(logo, (logo_x, logo_y))
 
+
+
     footer = Image.open('footer.jpg')
     footer = footer.resize((new_img.width, footer.height), Image.Resampling.LANCZOS)
 
@@ -75,6 +78,11 @@ def generate_collage(image_paths):
 
     final_img.paste(new_img, (0, 0))
     final_img.paste(footer, (0, new_height))
+
+    # Ajout de la taille sur l'image
+    draw = ImageDraw.Draw(final_img)
+    font = ImageFont.truetype("arial.ttf", 36)  # Choisissez la police et la taille appropriées
+    draw.text((10, 10), "100", (255, 255, 255), font=font)  # Positionnez le texte comme vous le souhaitez
 
     collage_filename = 'collage-' + image_paths[0].split('.')[0] + '-' + image_paths[1].split('.')[0] + '.png'
     collage_path = os.path.join(app.config['COLLAGE_FOLDER'], collage_filename)

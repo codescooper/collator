@@ -32,61 +32,84 @@ def create_collage():
     return redirect(url_for('upload_and_collage_images'))
 
 def generate_collage(image_paths, size):
-    # Fonction pour remplacer la transparence par un fond blanc
     def add_white_background(image):
         background = Image.new('RGB', image.size, 'white')
         background.paste(image, mask=image.split()[3])
         return background
 
-    # Charger les images et ajouter un fond blanc si nécessaire
-    img1 = Image.open(os.path.join(app.config['UPLOAD_FOLDER'], image_paths[0]))
-    img2 = Image.open(os.path.join(app.config['UPLOAD_FOLDER'], image_paths[1]))
+    def trim(im):
+        bbox = im.getbbox()
+        if bbox:
+            return im.crop(bbox)
+        return im  # Retourne l'image non modifiée si getbbox() renvoie None
+
+    # Chemin vers le répertoire contenant les logos
+    logo_dir = 'taille/'
+    footer_path = 'footer.jpg'  # Assurez-vous que ce chemin est correct
+
+    # Charger les images et les rogner
+    img1 = trim(Image.open(os.path.join(app.config['UPLOAD_FOLDER'], image_paths[0])))
+    img2 = trim(Image.open(os.path.join(app.config['UPLOAD_FOLDER'], image_paths[1])))
     if img1.mode == 'RGBA':
         img1 = add_white_background(img1)
     if img2.mode == 'RGBA':
         img2 = add_white_background(img2)
 
-    logo = Image.open('logo.png')
-    logo = add_white_background(logo)
-    logo_size = min(img1.width, img2.width) * 0.5
-    logo = logo.resize((int(logo_size), int(logo_size * (logo.height / logo.width))), Image.Resampling.LANCZOS)
+    # Charger le logo correspondant à la taille sélectionnée
+    logo_path = os.path.join(logo_dir, f'logo-{size}.png')
+    logo = Image.open(logo_path)
+    logo = add_white_background(logo) if logo.mode == 'RGBA' else logo
 
-    # Réduire l'espacement entre les images
-    espacement = 3  # Espacement en pixels entre les images et le logo
+    # Redimensionner le logo
+    logo_factor = 0.05
+    new_logo_size = (int(logo.width * logo_factor), int(logo.height * logo_factor))
+    logo = logo.resize(new_logo_size, Image.Resampling.LANCZOS)
 
-    new_width = img1.width + img2.width + logo.width + 2 * espacement
-    new_height = max(img1.height, img2.height, logo.height)
-    new_img = Image.new('RGB', (new_width, new_height), 'white')
+    # Calculer la taille du collage pour qu'il soit carré
+    collage_width = img1.width + img2.width + logo.width
+    collage_height = max(img1.height, img2.height, logo.height)
+    new_size = max(collage_width, collage_height)
+    new_img = Image.new('RGB', (new_size, new_size), 'white')
 
-    img1_x = espacement
-    img2_x = img1_x + img1.width + espacement + logo.width
-    images_y = (new_height - max(img1.height, img2.height)) // 2
-    logo_x = img1_x + img1.width + espacement
-    logo_y = (new_height - logo.height) // 2
+    # Charger le footer et le redimensionner pour correspondre à la largeur de l'image carrée
+    footer = Image.open(footer_path)
+    footer = footer.resize((new_size, int(new_size * (footer.height / footer.width))), Image.Resampling.LANCZOS)
 
-    new_img.paste(img1, (img1_x, images_y))
-    new_img.paste(img2, (img2_x, images_y))
-    new_img.paste(logo, (logo_x, logo_y))
+    # Calculer la hauteur totale de l'image finale avec le footer
+    final_height = new_size + footer.height
+    final_img = Image.new('RGB', (new_size, final_height), 'white')
 
+    # Positionner les images et le logo dans le carré
+    # Calculer la largeur disponible pour les robes
+    disponible_width_per_rob = (new_size - logo.width) // 2
 
+    # Redimensionner les images des robes
+    aspect_ratio_img1 = img1.height / img1.width
+    aspect_ratio_img2 = img2.height / img2.width
 
-    footer = Image.open('footer.jpg')
-    footer = footer.resize((new_img.width, footer.height), Image.Resampling.LANCZOS)
+    new_height_img1 = int(disponible_width_per_rob * aspect_ratio_img1)
+    new_height_img2 = int(disponible_width_per_rob * aspect_ratio_img2)
 
-    new_height_with_footer = new_height + footer.height
-    final_img = Image.new('RGB', (new_width, new_height_with_footer), 'white')
+    img1 = img1.resize((disponible_width_per_rob, new_height_img1))
+    img2 = img2.resize((disponible_width_per_rob, new_height_img2))
 
-    final_img.paste(new_img, (0, 0))
-    final_img.paste(footer, (0, new_height))
+    # Positionner les robes et le logo
+    img1_x = 0
+    logo_x = disponible_width_per_rob
+    img2_x = disponible_width_per_rob + logo.width
 
-    # Ajout de la taille sur l'image
-    draw = ImageDraw.Draw(final_img)
-    font = ImageFont.truetype("arial.ttf", 36)  # Choisissez la police et la taille appropriées
-    draw.text((10, 10), "100", (255, 255, 255), font=font)  # Positionnez le texte comme vous le souhaitez
+    # Coller les images redimensionnées dans le collage
+    new_img.paste(img1, (img1_x, (new_size - new_height_img1)//2))
+    new_img.paste(logo, (logo_x, (new_size - logo.height)//2))
+    new_img.paste(img2, (img2_x, (new_size - new_height_img2)//2))
 
+    # Coller le footer en bas de l'image
+    final_img.paste(footer, (0, new_size))
+
+    # Sauvegarder le collage
     collage_filename = 'collage-' + image_paths[0].split('.')[0] + '-' + image_paths[1].split('.')[0] + '.png'
     collage_path = os.path.join(app.config['COLLAGE_FOLDER'], collage_filename)
-    final_img.save(collage_path, 'PNG')
+    new_img.save(collage_path, 'PNG')
 
     return collage_filename
 
